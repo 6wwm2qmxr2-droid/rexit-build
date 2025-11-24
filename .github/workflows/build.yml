@@ -1,0 +1,32 @@
+name: Build Rexit Windows EXE
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Unpack Rexit source
+        run: |
+          Expand-Archive -Path "Rexit-main.zip" -DestinationPath "src"
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Windows GNU target
+        run: rustup target add x86_64-pc-windows-gnu
+
+      - name: Build Rexit
+        working-directory: src
+        run: cargo build --release --target x86_64-pc-windows-gnu
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v3
+        with:
+          name: rexit-windows-exe
+          path: src/target/x86_64-pc-windows-gnu/release/rexit.exe
