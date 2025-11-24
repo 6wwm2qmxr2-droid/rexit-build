@@ -11,9 +11,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Unpack Rexit source
+      - name: Unpack Rexit archive
         run: |
-          Expand-Archive -Path "Rexit-main.zip" -DestinationPath "src"
+          Expand-Archive -Path "Rexit-main.zip" -DestinationPath "unzipped"
+
+      - name: Find the Cargo project folder
+        id: findcargo
+        shell: pwsh
+        run: |
+          $dir = Get-ChildItem -Recurse -Directory "unzipped" | Where-Object { Test-Path "$($_.FullName)\Cargo.toml" } | Select-Object -First 1
+          if (-not $dir) {
+            Write-Error "Cargo.toml niet gevonden!"
+          }
+          Write-Host "Gevonden Cargo map: $($dir.FullName)"
+          echo "::set-output name=path::$($dir.FullName)"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -22,12 +33,13 @@ jobs:
         run: rustup target add x86_64-pc-windows-gnu
 
       - name: Build Rexit
-        working-directory: src
         run: cargo build --release --target x86_64-pc-windows-gnu
+        working-directory: ${{ steps.findcargo.outputs.path }}
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
           name: rexit-windows
-          path: src/target/x86_64-pc-windows-gnu/release/rexit.exe
+          path: ${{ steps.findcargo.outputs.path }}\target\x86_64-pc-windows-gnu\release\rexit.exe
+
 
